@@ -1,5 +1,6 @@
 import Post from '../../models/post';
 import mongoose from 'mongoose';
+import Joi from '../../../node_modules/joi/lib/index';
 
 const { ObjectId } = mongoose.Types;
 
@@ -22,6 +23,21 @@ export const checkObjectId = (ctx, next) => {
     }
 */
 export const write = async (ctx) => {
+    const schema = Joi.object().keys({
+        // 객체가 다음 필드를 갖고 있음을 검증함(Joi 라이브러리를 이용)
+        title: Joi.string().required(), // required()가 있으면 필수 항목
+        body: Joi.string().required(),
+        tags: Joi.array().items(Joi.string()).required(),
+    });
+
+    // 검증한 이후 실패했을 때 에러 처리
+    const result = schema.validate(ctx.request.body);
+    if (result.error) {
+        ctx.status = 400; // Bad Request
+        ctx.body = result.error;
+        return;
+    }
+
     const { title, body, tags } = ctx.request.body;
     const post = new Post({
         title,
@@ -88,6 +104,20 @@ export const remove = async (ctx) => {
 */
 export const update = async (ctx) => {
     const { id } = ctx.params;
+    // Request Body 검증은 write에서 사용한 schema와 비슷하나 required()가 사용되지 않음
+    const schema = Joi.object().keys({
+        title: Joi.string(),
+        body: Joi.string(),
+        tags: Joi.array().items(Joi.string()),
+    });
+
+    // 검증 시 실패인 경우 에러처리
+    const result = schema.validate(ctx.request.body);
+    if (result.error) {
+        ctx.status = 400;
+        ctx.body = result.error;
+        return;
+    }
     try {
         const post = await Post.findByIdAndUpdate(id, ctx.request.body, {
             new: true,
