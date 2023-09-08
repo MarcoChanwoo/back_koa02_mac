@@ -51,8 +51,45 @@ export const read = async (ctx) => {
         ctx.throw(500, e);
     }
 };
-export const remove = (ctx) => {};
-export const update = (ctx) => {};
+
+/*
+    DELETE /api/posts/:id
+*/
+export const remove = async (ctx) => {
+    const { id } = ctx.params;
+    try {
+        await Post.findByIdAndRemove(id).exec();
+        ctx.status = 204; // No Content(성공은 했으나 응답할 데이터가 없음)
+    } catch (e) {
+        ctx.throw(500, e);
+    }
+};
+
+/*
+    PATCH /api/posts/:id
+    {
+        title: '수정' 
+        body: '수정 내용'
+        tags: ['수정', '태그']
+    }
+*/
+export const update = async (ctx) => {
+    const { id } = ctx.params;
+    try {
+        const post = await Post.findByIdAndUpdate(id, ctx.request.body, {
+            new: true,
+            // true: 업데이트된 데이터를 반환
+            // false: 업데이트되기 전의 데이터를 반환
+        }).exec();
+        if (!post) {
+            ctx.status = 404;
+            return;
+        }
+        ctx.body = post;
+    } catch (e) {
+        ctx.throw(500, e);
+    }
+};
 
 // 자바스크립트 배열 데이터는 시스템 메모리 쪽에 위치하므로 서버를 재시작하면 모두 초기화 됨
 // 배열 대신에 MongoDB에 데이터를 등록하여 데이터를 보존할 것이므로 기존의 작성했던 모든 데이터를 제거하고 상단에 새로 작성함
